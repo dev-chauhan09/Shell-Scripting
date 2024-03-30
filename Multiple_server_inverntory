@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#######################
+
+# Author : Dev Chauhan
+
+# About : This shell script helps in automating multiple server inventory data present in servers.txt file 
+# and save output in csv file 
+
+# Special Thanks : 
+
+#######################
+
+
+# Define server list file
+SERVER_LIST_FILE="servers.txt"
+
+# Define output filename
+OUTPUT_FILE="server_inventory.csv"
+
+# Define header row for CSV file
+HEADER_ROW="Hostname,Operating System,Kernel Version,Uptime,Total Memory,Free Memory,Used Memory"
+
+# Clear existing output file
+rm -f "$OUTPUT_FILE"
+
+# Write header row to CSV
+echo "$HEADER_ROW" >> "$OUTPUT_FILE"
+
+# Loop through each server in the list file
+while IFS= read -r SERVER; do
+  # Connect to server via SSH and capture output
+  SERVER_DATA=$(ssh "$SERVER" uptime; uname -r; free -m)
+
+  # Parse server data and extract relevant information
+  HOSTNAME="$SERVER"
+  OS=$(echo "$SERVER_DATA" | awk '{print $1}')
+  KERNEL_VERSION=$(echo "$SERVER_DATA" | awk '{print $3}')
+  UPTIME=$(echo "$SERVER_DATA" | awk '{print $2,$3,$4}')
+  MEM_TOTAL=$(echo "$SERVER_DATA" | awk 'NR==2 {print $2}')
+  MEM_FREE=$(echo "$SERVER_DATA" | awk 'NR==2 {print $4}')
+  MEM_USED=$(expr "$MEM_TOTAL" - "$MEM_FREE")
+
+  # Format data row for CSV
+  DATA_ROW="$HOSTNAME,$OS,$KERNEL_VERSION,$UPTIME,$MEM_TOTAL,$MEM_FREE,$MEM_USED"
+
+  # Append data row to CSV file
+  echo "$DATA_ROW" >> "$OUTPUT_FILE"
+done < "$SERVER_LIST_FILE"
+
+echo "Server inventory data saved to: $OUTPUT_FILE"
+
